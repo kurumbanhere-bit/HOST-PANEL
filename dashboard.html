@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hoster Panel - KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --bg: #ffffff; --text-main: #333; --text-sub: #888; --border: #eeeeee; --accent: #ff4d00; --p-green: #0fa958; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; padding: 20px; color: var(--text-main); padding-bottom: 100px; }
+        .page-label { font-size: 11px; text-transform: uppercase; color: var(--text-sub); font-weight: bold; }
+        .page-title { font-size: 26px; font-weight: 800; margin: 5px 0 20px 0; }
+        .stats-bar { display: flex; justify-content: space-between; margin-bottom: 25px; }
+        .date-box, .count-box { padding: 10px 15px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .match-card { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 20px; margin-bottom: 15px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .m-title { font-size: 15px; font-weight: 800; text-transform: uppercase; margin: 0; }
+        .m-date { font-size: 12px; color: var(--text-sub); margin-top: 4px; display: block; }
+        .status-badge { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
+        .status-badge.upcoming { background: #e8f5e9; color: var(--p-green); }
+        .card-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 15px; }
+        .tap-open { font-size: 12px; color: var(--p-green); font-weight: 600; }
+        .logout-btn { position: fixed; top: 20px; right: 20px; border: none; background: none; font-size: 20px; cursor: pointer; }
+        #noMatchMsg { text-align: center; margin-top: 80px; color: #bbb; }
+    </style>
+</head>
+<body>
+
+<button class="logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i></button>
+
+<div class="page-label">Hoster Panel</div>
+<h1 class="page-title">My Matches</h1>
+
+<div class="stats-bar">
+    <div class="date-box"><i class="fa-regular fa-calendar"></i> <span id="curDate"></span></div>
+    <div class="count-box"><i class="fa-solid fa-gamepad"></i> <span id="tCount">0 matches</span></div>
+</div>
+
+<div id="matchContainer">
+    <div id="noMatchMsg"><i class="fa-solid fa-spinner fa-spin" style="font-size: 30px;"></i><p>Checking for assigned matches...</p></div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 1. Correct Session Handling
+    const hostEmail = localStorage.getItem("hostEmail");
+    if (!hostEmail) {
+        alert("Please login first!");
+        window.location.href = "index.html";
+    }
+
+    // Format email for DB search (kurumbanhere_gmail_com)
+    const formattedEmail = hostEmail.replace(/[.$#[\]]/g, "_");
+    console.log("Searching matches for Host ID:", formattedEmail);
+
+    document.getElementById('curDate').innerText = new Date().toLocaleDateString('en-US', {month:'short', day:'numeric'});
+
+    function loadMatches() {
+        // Querying: matches table-il 'assignedHost' field formattedEmail-inu tulyamaya matches edukku
+        db.ref('matches').orderByChild('assignedHost').equalTo(formattedEmail).on('value', snap => {
+            const container = document.getElementById('matchContainer');
+            const tCount = document.getElementById('tCount');
+            
+            if(!snap.exists()) {
+                container.innerHTML = `<div id="noMatchMsg"><i class="fa-solid fa- ghost"></i><p>No matches assigned to: <br><small>${hostEmail}</small></p></div>`;
+                tCount.innerText = "0 matches";
+                return;
+            }
+
+            container.innerHTML = "";
+            let count = 0;
+            snap.forEach(child => {
+                count++;
+                const m = child.val();
+                const dateObj = new Date(m.time);
+                const mTime = dateObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+                container.innerHTML += `
+                    <div class="match-card" onclick="window.location.href='card.html?id=${child.key}'">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="m-title">${m.category} - ${m.teamType}</h3>
+                                <span class="m-date">${m.map} | ${mTime}</span>
+                            </div>
+                            <span class="status-badge upcoming">${m.status || 'Upcoming'}</span>
+                        </div>
+                        <div class="card-footer">
+                            <span class="tap-open"><i class="fa-solid fa-plus-circle"></i> ADD ROOM ID</span>
+                            <span style="font-weight:800; font-size:14px;">${mTime}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            tCount.innerText = `${count} matches`;
+        });
+    }
+
+    function logout() {
+        if(confirm("Logout?")) {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+    }
+
+    loadMatches();
+</script>
+</body>
+</html>

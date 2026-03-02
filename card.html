@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Management - KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --p-green: #0fa958; --bg: #f8fafc; --white: #ffffff; --red: #ef4444; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 80px; }
+        
+        .top-nav { display: flex; align-items: center; padding: 10px 0; gap: 15px; }
+        .card { background: var(--white); border-radius: 15px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        /* Status Bar */
+        .status-container { display: flex; justify-content: space-around; margin-bottom: 15px; }
+        .status-item { text-align: center; opacity: 0.3; cursor: pointer; color: #666; transition: 0.3s; }
+        .status-item.active { opacity: 1; color: var(--red); font-weight: bold; }
+        .status-item i { font-size: 20px; display: block; margin-bottom: 5px; }
+
+        /* Tabs */
+        .tab-btn-container { display: flex; background: #f1f3f5; border-radius: 10px; padding: 5px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 10px; text-align: center; font-size: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; color: #666; }
+        .tab-btn.active { background: var(--white); color: #000; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Result Image & Winners List */
+        .result-img-box { width: 100%; border-radius: 12px; overflow: hidden; border: 1px solid #ddd; margin-bottom: 15px; background: #eee; min-height: 150px; display: flex; align-items: center; justify-content: center; }
+        #previewImg { width: 100%; display: none; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 11px; color: #999; padding: 10px 5px; border-bottom: 2px solid #f1f1f1; }
+        td { padding: 12px 5px; border-bottom: 1px solid #f1f1f1; font-size: 13px; font-weight: 600; }
+
+        .btn-add { background: var(--p-green); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 10px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div class="top-nav">
+    <i class="fa-solid fa-arrow-left" onclick="history.back()"></i>
+    <h3 id="matchTitle" style="margin:0; font-size: 16px;">LOADING MATCH...</h3>
+</div>
+
+<div class="card">
+    <div class="status-container">
+        <div class="status-item" id="stat-upcoming" onclick="updateStatus('Upcoming')"><i class="fa-regular fa-clock"></i><span>Upcoming</span></div>
+        <div class="status-item" id="stat-started" onclick="updateStatus('Started')"><i class="fa-regular fa-circle-play"></i><span>Started</span></div>
+        <div class="status-item" id="stat-ended" onclick="updateStatus('Ended')"><i class="fa-regular fa-circle-stop"></i><span>Ended</span></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="tab-btn-container">
+        <div class="tab-btn active" onclick="switchTab('participants', this)">Participants</div>
+        <div class="tab-btn" onclick="switchTab('winners', this)">Winners & Result</div>
+    </div>
+
+    <div id="participants" class="tab-content active">
+        <table id="pTable">
+            <thead><tr><th>Player Name</th><th>Game ID</th></tr></thead>
+            <tbody id="playerList"></tbody>
+        </table>
+    </div>
+
+    <div id="winners" class="tab-content">
+        <label style="font-size: 11px; font-weight: bold; color: #888;">RESULT SCREENSHOT</label>
+        <div class="result-img-box" onclick="document.getElementById('imgUpload').click()">
+            <img id="previewImg">
+            <div id="noImgText"><i class="fa-solid fa-camera" style="font-size: 24px;"></i><br><small>Click to Upload Result</small></div>
+        </div>
+        <input type="file" id="imgUpload" style="display:none" accept="image/*" onchange="uploadImage(this)">
+
+        <div style="background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #eee; margin-bottom: 20px;">
+            <select id="playerSelect"><option value="">-- Select Winner --</option></select>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="wRank" placeholder="Rank (1st)">
+                <input type="number" id="wKills" placeholder="Kills">
+                <input type="number" id="wPrize" placeholder="Prize">
+            </div>
+            <button class="btn-add" onclick="saveWinner()">SAVE WINNER DATA</button>
+        </div>
+
+        <table id="wTable">
+            <thead><tr><th>Rank</th><th>Name</th><th>Kills</th><th>Prize</th><th></th></tr></thead>
+            <tbody id="winnerList"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const urlParams = new URLSearchParams(window.location.search);
+    const matchId = urlParams.get('id');
+
+    function loadMatchData() {
+        if (!matchId) return;
+
+        // 1. Load Image and Status
+        db.ref('matches/' + matchId).on('value', snap => {
+            const m = snap.val();
+            if (!m) return;
+            document.getElementById('matchTitle').innerText = m.category || "Tournament";
+            
+            if(m.resultImage) {
+                document.getElementById('previewImg').src = m.resultImage;
+                document.getElementById('previewImg').style.display = "block";
+                document.getElementById('noImgText').style.display = "none";
+            }
+            updateStatusUI(m.status);
+        });
+
+        // 2. Load Participants (for list and dropdown)
+        db.ref('matches/' + matchId + '/participants').on('value', snap => {
+            const list = document.getElementById('playerList');
+            const select = document.getElementById('playerSelect');
+            list.innerHTML = "";
+            select.innerHTML = '<option value="">-- Select Winner --</option>';
+            snap.forEach(child => {
+                const p = child.val();
+                const name = p.gameName || p.gamename;
+                list.innerHTML += `<tr><td>${name}</td><td>${p.gameID || ""}</td></tr>`;
+                select.innerHTML += `<option value="${name}">${name}</option>`;
+            });
+        });
+
+        // 3. Load Winners (This is where Host's entries will appear)
+        db.ref('matches/' + matchId + '/winners').on('value', snap => {
+            const wList = document.getElementById('winnerList');
+            wList.innerHTML = "";
+            snap.forEach(child => {
+                const w = child.val();
+                wList.innerHTML += `<tr>
+                    <td>${w.rank}</td>
+                    <td>${w.playerName}</td>
+                    <td>${w.kills || 0}</td>
+                    <td style="color:var(--p-green)">₹${w.winnings}</td>
+                    <td><i class="fa-solid fa-circle-xmark" style="color:#ff4d00;" onclick="deleteWinner('${child.key}')"></i></td>
+                </tr>`;
+            });
+        });
+    }
+
+    // Logic to save/upload
+    function uploadImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => db.ref('matches/' + matchId).update({ resultImage: e.target.result });
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function saveWinner() {
+        const name = document.getElementById('playerSelect').value;
+        const rank = document.getElementById('wRank').value;
+        const kills = document.getElementById('wKills').value;
+        const prize = document.getElementById('wPrize').value;
+        if(!name || !rank) return alert("Select Player & Rank!");
+
+        db.ref('matches/' + matchId + '/winners').push({ playerName: name, rank: rank, kills: kills, winnings: prize }).then(() => {
+            document.getElementById('wRank').value = "";
+            document.getElementById('wKills').value = "";
+            document.getElementById('wPrize').value = "";
+        });
+    }
+
+    function deleteWinner(key) { if(confirm("Remove?")) db.ref('matches/' + matchId + '/winners/' + key).remove(); }
+    function updateStatus(status) { db.ref('matches/' + matchId).update({ status: status }); }
+    function updateStatusUI(status) {
+        document.querySelectorAll('.status-item').forEach(el => el.classList.remove('active'));
+        const el = document.getElementById('stat-' + (status ? status.toLowerCase() : 'upcoming'));
+        if(el) el.classList.add('active');
+    }
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    loadMatchData();
+</script>
+</body>
+</html>

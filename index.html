@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Portal - Kerala Esports</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
+    <link rel="stylesheet" href="index.css">
+    <style>
+        /* Status Message Style */
+        #statusMsg {
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="main-heading">HOST PANEL</h1>
+            <p class="sub-text">Welcome back! Please enter your credentials to access the tournament dashboard.</p>
+        </header>
+
+        <main class="login-card">
+            <div class="card-header">
+                <h2>Login to Host</h2>
+            </div>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="userId">Host ID (Username or Email)</label>
+                    <input type="text" id="userId" placeholder="Enter Host ID" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter Password" required>
+                </div>
+
+                <button type="submit" id="submitBtn" class="login-btn">ACCESS PANEL</button>
+            </form>
+
+            <div id="statusMsg"></div>
+        </main>
+    </div>
+
+    <script>
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyAo9KNsWnq2AgoCGzPuCsg7YCbuw8-Apuo",
+          authDomain: "studio-4988500581-b9772.firebaseapp.com",
+          databaseURL: "https://studio-4988500581-b9772-default-rtdb.firebaseio.com",
+          projectId: "studio-4988500581-b9772",
+          storageBucket: "studio-4988500581-b9772.firebasestorage.app",
+          messagingSenderId: "773461302160",
+          appId: "1:773461302160:web:13deb67b24b267ac0b7115"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
+        // Redirect if already logged in
+        if (localStorage.getItem("isLoggedIn") === "true") {
+            window.location.href = "dashboard.html";
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const userId = document.getElementById('userId').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const statusMsg = document.getElementById('statusMsg');
+
+            submitBtn.innerText = "VERIFYING...";
+            submitBtn.disabled = true;
+
+            // Database check: 'approved_hosts' list-il ee details undo ennu nokkunnu
+            db.ref('approved_hosts').once('value', (snapshot) => {
+                let isAuthenticated = false;
+                let foundData = null;
+
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const userData = childSnapshot.val();
+                        // Admin panel-il manual aayi add cheytha username aano allenkil approved email aano ennu check cheyyunnu
+                        const dbUser = userData.username || userData.email;
+                        
+                        if (dbUser === userId && userData.password === pass) {
+                            isAuthenticated = true;
+                            foundData = userData;
+                        }
+                    });
+                }
+
+                if (isAuthenticated) {
+                    localStorage.setItem("isLoggedIn", "true");
+                    localStorage.setItem("hostEmail", userId);
+                    statusMsg.innerText = "Login Successful! Redirecting...";
+                    statusMsg.style.color = "#2ecc71";
+                    setTimeout(() => { window.location.href = "dashboard.html"; }, 800);
+                } else {
+                    statusMsg.innerText = "Access Denied! Not an approved host.";
+                    statusMsg.style.color = "#e74c3c";
+                    alert("Invalid credentials or account not approved by admin!");
+                    submitBtn.innerText = "ACCESS PANEL";
+                    submitBtn.disabled = false;
+                }
+            }).catch((error) => {
+                console.error(error);
+                alert("Database Connection Error!");
+                submitBtn.disabled = false;
+                submitBtn.innerText = "ACCESS PANEL";
+            });
+        });
+    </script>
+</body>
+</html>

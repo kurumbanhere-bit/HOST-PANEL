@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Schedule - Kerala Esports</title>
+    
+    <style>
+        /* Flicker Blocking */
+        html { visibility: hidden; background-color: white; }
+    </style>
+
+    <script>
+        // Instant Security Check
+        if (localStorage.getItem("isLoggedIn") !== "true") {
+            window.location.href = "index.html";
+        } else {
+            document.documentElement.style.visibility = 'visible';
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-left"><i class="fa-solid fa-bars"></i></div>
+    <div class="nav-right">
+        <div class="wallet-icon">
+            <i class="fa-solid fa-wallet"></i>
+            <span class="badge">+147</span>
+        </div>
+        <i class="fa-regular fa-moon"></i>
+        <i class="fa-regular fa-circle-user" onclick="logout()" style="cursor:pointer;"></i>
+    </div>
+</nav>
+
+<main class="content">
+    <p class="section-subtitle">SCHEDULE</p>
+    <h1 class="section-title">Tournament schedule</h1>
+    <p class="section-desc">Manage and open tournament rooms assigned to you.</p>
+
+    <div class="filter-bar">
+        <div class="date-picker">
+            <i class="fa-regular fa-calendar"></i>
+            <span id="curDate">Loading...</span>
+        </div>
+        <div class="tourney-count">
+            <i class="fa-solid fa-trophy"></i>
+            <span id="tCount">0 tournaments</span>
+        </div>
+    </div>
+
+    <div id="matchContainer"></div>
+</main>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

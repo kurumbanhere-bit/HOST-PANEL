@@ -1,0 +1,68 @@
+:root {
+    --bg-color: #ffffff;
+    --card-border: #e0e0e0;
+    --text-primary: #1a1a1a;
+    --text-secondary: #757575;
+    --accent-red: #ff4d4d;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 20px;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.nav-right { display: flex; gap: 20px; align-items: center; }
+
+.wallet-icon {
+    position: relative;
+    background: #f5f5f5;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.badge {
+    position: absolute;
+    top: -8px; right: -10px;
+    background: var(--accent-red);
+    color: white; font-size: 10px;
+    padding: 2px 6px; border-radius: 10px;
+}
+
+.content { padding: 25px 20px; }
+.section-subtitle { font-size: 11px; letter-spacing: 1.5px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+.section-title { font-size: 28px; font-weight: 700; margin: 5px 0; }
+.section-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 25px; }
+
+.filter-bar { display: flex; justify-content: space-between; margin-bottom: 30px; }
+.date-picker, .tourney-count {
+    border: 1px solid var(--card-border);
+    padding: 10px 15px; border-radius: 8px;
+    font-size: 13px; display: flex; align-items: center; gap: 10px;
+}
+
+.match-card {
+    border: 1px solid var(--card-border);
+    border-radius: 20px; padding: 25px;
+    margin-bottom: 15px; cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.match-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+.m-header { display: flex; justify-content: space-between; align-items: center; }
+.m-title { font-size: 16px; font-weight: 800; }
+.status-tag { font-size: 10px; background: #f0f0f0; padding: 4px 8px; border-radius: 4px; color: #888; font-weight: bold; }
+.m-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+.tap-text { font-size: 13px; color: #b0b0b0; }
+.m-time-bold { font-weight: 700; font-size: 15px; }

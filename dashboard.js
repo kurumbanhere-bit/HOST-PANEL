@@ -9,20 +9,14 @@ const firebaseConfig = {
     appId: "1:773461302160:web:13deb67b24b267ac0b7115"
 };
 
-// Initialize Firebase
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
 
-/**
- * Mukhya kaaryam: Admin panel-il 'Assign Host' cheyyumpol ulla peru 
- * (Email allengil Username) thirichariyaan ulla identifier.
- */
 const hostIdentifier = localStorage.getItem("hostUsername") || localStorage.getItem("hostEmail");
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Current date set cheyyunnu
     const options = { month: 'long', day: 'numeric', year: 'numeric' };
     const today = new Date().toLocaleDateString('en-US', options);
     const curDateEl = document.getElementById('curDate');
@@ -30,12 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (hostIdentifier) {
         loadMatches();
-    } else {
-        console.error("Host Identifier not found! Please login again.");
-        // Session illenkil logout aakam
-        // window.location.href = "index.html";
     }
 });
+
 function loadMatches() {
     const container = document.getElementById('matchContainer');
     const tCountText = document.getElementById('tCount');
@@ -49,7 +40,6 @@ function loadMatches() {
             return;
         }
 
-        // 1. Firebase snapshot-ine oru array-ilekku maattunnu
         let matchesArray = [];
         snap.forEach((child) => {
             matchesArray.push({
@@ -58,32 +48,43 @@ function loadMatches() {
             });
         });
 
-        // 2. Time anusarithu SORT cheyyunnu (1:20 mukalil varaan)
-        matchesArray.sort((a, b) => {
-            return new Date(a.time) - new Date(b.time);
-        });
+        matchesArray.sort((a, b) => new Date(a.time) - new Date(b.time));
 
         container.innerHTML = "";
         let count = matchesArray.length;
 
-        // 3. Sorted array upayogichu HTML display cheyyunnu
         matchesArray.forEach((m) => {
             const matchId = m.key;
             const mDate = new Date(m.time);
-            const formattedTime = mDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const formattedTime = mDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
-            const isEnded = new Date() > new Date(mDate.getTime() + 60 * 60000);
-            const statusLabel = isEnded ? "ENDED" : "UPCOMING";
-            const statusBg = isEnded ? "#888" : "#28a745";
+            /** * STATUS & COLOR LOGIC
+             * Upcoming = Green | Started = Red | Ended = Black | Completed = Rainbow
+             */
+            let statusValue = (m.status || "upcoming").toLowerCase();
+            let statusLabel = "UPCOMING";
+            let statusBg = "#28a745"; // Default Green
+            let statusClass = ""; 
+
+            if (statusValue === "started") {
+                statusLabel = "STARTED";
+                statusBg = "#ff0000"; // Red
+            } else if (statusValue === "ended") {
+                statusLabel = "ENDED";
+                statusBg = "#000000"; // Black
+            } else if (statusValue === "completed") {
+                statusLabel = "WIN ADDED";
+                statusClass = "rainbow-status"; // Triggers CSS Animation
+            }
 
             container.innerHTML += `
-                <div class="match-card" onclick="openMatch('${matchId}')" style="cursor:pointer; animation: fadeIn 0.5s ease;">
+                <div class="match-card" onclick="openMatch('${matchId}')" style="cursor:pointer; animation: fadeIn 0.5s ease; border-left: 5px solid ${statusClass ? 'purple' : statusBg};">
                     <div class="m-header" style="display:flex; justify-content:space-between; align-items:start;">
                         <div>
                             <h3 class="m-title" style="margin:0; font-size:16px; color:#333;">${m.category}</h3>
                             <small style="color:#666; font-weight:500;">${m.teamType} | ${m.map || 'Bermuda'}</small>
                         </div>
-                        <span class="status-tag" style="background:${statusBg}; color:white; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:bold;">
+                        <span class="status-tag ${statusClass}" style="background:${statusBg}; color:white; padding:4px 10px; border-radius:4px; font-size:10px; font-weight:bold;">
                             ${statusLabel}
                         </span>
                     </div>
@@ -102,9 +103,7 @@ function loadMatches() {
     });
 }
 
-
 function openMatch(id) {
-    // Match detail card-ilekk link cheyyunnu
     window.location.href = `card.html?id=${id}`;
 }
 
@@ -115,13 +114,28 @@ function logout() {
     }
 }
 
-// Simple Animation
+// All Animations & Rainbow CSS Added here
 const style = document.createElement('style');
 style.innerHTML = `
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
     }
+    
     .match-card:active { transform: scale(0.97); transition: 0.1s; }
+
+    .rainbow-status {
+        background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) !important;
+        background-size: 400% 400% !important;
+        animation: rainbowEffect 3s ease infinite !important;
+        border: none;
+    }
+
+    @keyframes rainbowEffect {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
 `;
 document.head.appendChild(style);
+
